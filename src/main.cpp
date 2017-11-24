@@ -9,6 +9,8 @@
 #include<mutex>
 #include<condition_variable>
 
+#include"pgsql.h"
+
 const std::string sensor_path = "/sys/devices/w1_bus_master1/28-000008aac4f7/w1_slave";
 const std::chrono::seconds read_frequency(3);
 
@@ -49,7 +51,7 @@ void poll_sensor() {
 		std::cout << "Device read took " << elapsed.count() << "ms.  Adjusting sleep time.\n";
 
 		if(temp == -1) {
-			std::cout << "Error reading sensor.\n";	
+			std::cout << "Error reading sensor.\n";
 			exit(-1);
 		}
 
@@ -60,6 +62,8 @@ void poll_sensor() {
 }
 
 int main(int argc, char* argv[]) {
+	PgsqlDatabase db;
+
 	std::thread poll(poll_sensor);
 	int current_temp = 0;
 
@@ -69,6 +73,8 @@ int main(int argc, char* argv[]) {
 		{
 			current_temp = temp;
 		}
+		if(!db.insertMeasurement(current_temp))
+			std::cout << "Problem inseting measurement into DB.\n";
 		std::cout << "read temp: " << (current_temp / 1000.0) << "\n";
 	}
 }
